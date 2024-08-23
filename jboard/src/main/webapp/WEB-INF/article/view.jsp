@@ -1,13 +1,13 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core"%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글보기</title>
-    <link rel="stylesheet" href="/jboard/css/style.css">    
-    <script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>글보기</title>
+<link rel="stylesheet" href="/jboard/css/style.css">
+<script>
     	window.onload = function() {
     		
 	    	const commentForm = document.commentForm;
@@ -18,73 +18,75 @@
 	    	// 동적 이벤트 처리
 	    	document.addEventListener('click', function(e){
 	    		
-	    		// 수정 완료
-	    		if(e.target.classList == 'commentUpdate') {
-	    			e.preventDefault();	 // a 태그의 이벤트 속성 해제 하려고 하는거임
-	    			
-	    			const article = e.target.closest('article');
-	    			const textarea = article.querySelector('textarea');		
-	    			
-	    			const no = e.target.dataset.no;
-	    			const comment = textarea.value;
-	    			
-	    			const formData = new FormData();
-	    			formData.append("no", no);
-	    			formData.append("comment", comment);
-	    			
-	    			
-	    			fetch('/jboard/comment/modify.do', {
-	    				method: 'POST',
-	    				body: formData
-	    			})
-	    				.then(resp => resp.json())
-	    				.then(data => {
-	    					console.log(data);
-	    					
-	    					if(data.result > 0) {
-	    						alert('댓글이 수정되었습니다.');
-	    					
-	    						textarea.readOnly = true;
-	    		    			textarea.style.background = 'transparent';
-	    		    			textarea.style.border = 'none';
-	    		    			e.target.innerText = '수정';
-	    					
-	    					}
-	    					
-	    				})
-	    				.catch(err => {
-	    					console.log(err);
-	    				});
+	    		const article = e.target.closest('article');
+				const textarea = article.querySelector('textarea');
+				const commentRemove = article.querySelector('.commentRemove');
+				const commentCancel = article.querySelector('.commentCancel');
+				const commentModify = article.querySelector('.commentModify');
+    			
+    			// 취소(224라인에 취소 a태그 추가할것)
+    			if(e.target.classList == 'commentCancel'){
+    				e.preventDefault();
+    				textarea.value = originalText;
+    				textareaEditMode(false);
+    			}
+    			
+    			// 수정 & 수정완료
+    			if(e.target.classList == 'commentModify'){
+    				e.preventDefault(); // a 태그의 이벤트 속성 해제 하려고 하는거임
+        			const mode = commentModify.innerText;
+    				
+    				if(mode == '수정'){
+    					originalText = textarea.value;
+    					textareaEditMode(true);
+    				}else{
+    					// 수정완료
+	    				const no = commentModify.dataset.no;
+	    				const comment = textarea.value;
 	    				
-	    			
-	    		}
+	    				const formData = new FormData();
+	    				formData.append("no", no);
+	    				formData.append("comment", comment);
+	    				
+	    				fetch('/jboard/comment/modify.do', {
+	    						method: 'POST',
+	    						body: formData
+	    					})
+	    					.then(resp => resp.json())
+	    					.then(data => {
+	    						console.log(data);
+	    						
+	    						if(data.result > 0){
+	    							alert('댓글이 수정되었습니다.');
+	    							textareaEditMode(false);
+	    						}
+	    					})
+	    					.catch(err => {
+	    						console.log(err);
+	    					});
+    				}
+    			}
+    			
 	    		
-	    		// 수정 & 취소
-	    		if(e.target.classList == 'commentModify') {
-	    			e.preventDefault();
-	    			
-	    			const article = e.target.closest('article');
-	    			const textarea = article.querySelector('textarea');
-	    			
-	    			const mode = e.target.innerText;
-	    			
-	    			if(mode == '수정'){
-	    				originalText = textarea.value;
-	    				
-	    				textarea.readOnly = false;
-		    			textarea.style.background = 'white';
-		    			textarea.style.border = '1px solid #555';
-		    			textarea.focus();
-		    			e.target.innerText = '취소';
-	    			}else{
-	    				originalText = textarea.value;
-	    				
-	    				textarea.readOnly = true;
-		    			textarea.style.background = 'transparent';
-		    			textarea.style.border = 'none';
-		    			e.target.innerText = '수정';
-	    			}
-	    		}
+    			// 댓글 Textarea 수정모드/일반모드 전환 함수
+    			function textareaEditMode(edit) {
+        			if(edit){
+        				// 수정모드
+        				textarea.readOnly = false;
+        				textarea.style.background = 'white';
+        				textarea.style.border = '1px solid #555';
+        				textarea.focus();
+        				commentModify.innerText = '수정완료';
+        				commentCancel.style.display = 'inline';
+        			}else{
+        				// 일반모드
+        				textarea.readOnly = true;
+	    				textarea.style.background = 'transparent';
+	    				textarea.style.border = 'none';
+	    				commentModify.innerText = '수정';
+	    				commentCancel.style.display = 'none';
+        			}
+        		}
 	    		
 	    		// 삭제
 	    		if(e.target.classList == 'commentRemove') {
@@ -155,10 +157,11 @@
 								                            <span>\${data.nick}</span>
 								                        </span>
 								                        <textarea name='comment' readonly>\${data.content}</textarea>
-								                        <div> 
-								                        	<a href="#" class="commentRemove">삭제</a>
+								                        <div>
+									                        <a href="#" class="commentRemove">삭제</a>
 								                            <a href="#" class="commentModify">수정</a>
-								                        </div>
+								                            <a href="#" class="commentUpdate">수정완료</a>
+							                        	</div>
 								                    </article>`;
 	    					
 	    					commentList.insertAdjacentHTML('beforeend', commentArticle);
@@ -176,87 +179,84 @@
     	}
     
     </script>
-    
-    
+
 </head>
 <body>
-    <div id="container">
-         <%@ include file="./_header.jsp" %>
-        <main>
-            <section class="view">
-                <h3>글보기</h3>
-                <table>
-                    <tr>
-                        <td>제목</td>
-                        <td><input type="text" name="title" value="${articleDTO.title}" readonly/></td>
-                    </tr>
-                    <!-- 첨부파일이 있으면 나타나게끔  -->
-                    <c:if test="${articleDTO.file > 0}">
-	                    <tr>
-	                        <td>첨부파일</td>
-	                        <td>
-	                        <c:forEach var="file" items="${articleDTO.files}">
-		                        <p style="margin:4px 0">
-		                            <a href="/jboard/article/fileDownload.do?fno=${file.fno}">${file.oName}</a>
-		                            <span>${file.download}회 다운로드</span>
-		                        </p>
-                       		</c:forEach>
-	                        </td>
-	                    </tr>
-                    </c:if>
-                    <tr>
-                        <td>내용</td>
-                        <td>
-                            <textarea name="content" readonly>${articleDTO.title}</textarea>
-                        </td>
-                    </tr>
-                </table>
-                <div>
-                    <a href="#" class="btnDelete">삭제</a>
-                    <a href="#" class="btnModify">수정</a>
-                    <a href="/jboard/article/list.do" class="btnList">목록</a>
-                </div>  
-                
-                <!-- 댓글리스트 -->
-                <section class="commentList">
-                    <h3>댓글목록</h3>
-                    <c:forEach var="comment" items="${comments}">
-	                    <article class="comment">
-	                        <span>
-	                        	<span>${comment.rdate}</span>
-	                            <span>${comment.nick}</span>
-	                        </span>
-	                        <textarea name="comment" readonly>${comment.content}</textarea>
-	                        <div> 
-	                        	<!-- HTML 사용자 정의 속성을 이용한 삭제/수정 -->
-	                            <a href="#" class="commentRemove" data-no="${comment.no}">삭제</a>
-	                            <a href="#" class="commentModify" data-no="${comment.no}">수정</a>
-	                            <a href="#" class="commentUpdate" data-no="${comment.no}">수정완료</a>
-	                        </div>
-	                    </article>
-                    </c:forEach>
-                   	<!-- 댓글이 없을때만 나오게끔 -->
-                    <c:if test="${empty comments}">
-	                    <p class="empty">등록된 댓글이 없습니다.</p>
-                    </c:if>
-                </section>
-    
-                <!-- 댓글입력폼 -->
-                <section class="commentForm">
-                    <h3>댓글쓰기</h3>
-                    <form name="commentForm"> 
-                    	<input type="hidden" name="parent" value="${articleDTO.no}" />
-                    	<input type="hidden" name="writer" value="${sessUser.uid}" />
-                        <textarea name="comment"></textarea>
-                        <div>
-                            <a href="#" class="btnCancel">취소</a>
-                            <input type="submit" class="btnWrite" value="작성완료"/>
-                        </div>
-                    </form>
-                </section>
-            </section>
-        </main>
-         <%@ include file="./_footer.jsp" %>
-    </div>
+	<div id="container">
+		<%@ include file="./_header.jsp"%>
+		<main>
+			<section class="view">
+				<h3>글보기</h3>
+				<table>
+					<tr>
+						<td>제목</td>
+						<td><input type="text" name="title"
+							value="${articleDTO.title}" readonly /></td>
+					</tr>
+					<!-- 첨부파일이 있으면 나타나게끔  -->
+					<c:if test="${articleDTO.file > 0}">
+						<tr>
+							<td>첨부파일</td>
+							<td><c:forEach var="file" items="${articleDTO.files}">
+									<p style="margin: 4px 0">
+										<a href="/jboard/article/fileDownload.do?fno=${file.fno}">${file.oName}</a>
+										<span>${file.download}회 다운로드</span>
+									</p>
+								</c:forEach></td>
+						</tr>
+					</c:if>
+					<tr>
+						<td>내용</td>
+						<td><textarea name="content" readonly>${articleDTO.title}</textarea>
+						</td>
+					</tr>
+				</table>
+				<div>
+					<a href="#" class="btnDelete">삭제</a> <a href="#" class="btnModify">수정</a>
+					<a href="/jboard/article/list.do" class="btnList">목록</a>
+				</div>
+
+				<!-- 댓글리스트 -->
+				<section class="commentList">
+					<h3>댓글목록</h3>
+					<c:forEach var="comment" items="${comments}">
+						<article class="comment">
+							<span> <span>${comment.rdate}</span> <span>${comment.nick}</span>
+							</span>
+							<textarea name="comment" readonly>${comment.content}</textarea>
+							<!-- 자기가 쓴 글만 삭제/수정 가능하게끔 -->
+							<c:if test="${sessUser.uid eq comment.writer}">
+								<div>
+									<!-- HTML 사용자 정의 속성을 이용한 삭제/수정 -->
+									<a href="#" class="commentRemove" data-no="${comment.no}">삭제</a>
+									<a href="#" class="commentCancel" data-no="${comment.no}">수정</a>
+									<a href="#" class="commentModify" data-no="${comment.no}">수정완료</a>
+								</div>
+							</c:if>
+						</article>
+					</c:forEach>
+					<!-- 댓글이 없을때만 나오게끔 -->
+					<c:if test="${empty comments}">
+						<p class="empty">등록된 댓글이 없습니다.</p>
+					</c:if>
+				</section>
+
+				<!-- 댓글입력폼 -->
+				<section class="commentForm">
+					<h3>댓글쓰기</h3>
+					<form name="commentForm">
+						<input type="hidden" name="parent" value="${articleDTO.no}" /> <input
+							type="hidden" name="writer" value="${sessUser.uid}" />
+						<textarea name="comment"></textarea>
+						<div>
+							<a href="#" class="btnCancel">취소</a> <input type="submit"
+								class="btnWrite" value="작성완료" />
+						</div>
+					</form>
+				</section>
+			</section>
+		</main>
+		<%@ include file="./_footer.jsp"%>
+	</div>
 </body>
 </html>
